@@ -217,6 +217,22 @@ $(function() {
         }
    
         var setAxes = function() {
+            
+            svg.append("text")
+                .attr("class", "x label")
+                .attr("text-anchor", "end")
+                .attr("x", width)
+                .attr("y", height + margin.bottom - 60)
+                .text(xSort);
+                
+            svg.append("text")
+                .attr("class", "y label")
+                .attr("text-anchor", "end")
+                .attr("y", 6)
+                .attr("dy", -margin.left + 10)
+                .attr("transform", "rotate(-90)")
+                .text("Average amount ($)");
+                
             xAxis = d3.svg.axis()
                         .scale(x)
                         .orient('bottom');
@@ -252,10 +268,19 @@ $(function() {
                 .attr("transform", function(d) {
                     return "rotate(-65)" 
                     });
-                
+            
             svg.append("g")
                 .attr("class", "y axis")
                 .call(yAxis);
+                
+            svg.append("text")
+                .attr("x", (width / 2))             
+                .attr("y", 0 - (margin.top / 2))
+                .attr("text-anchor", "middle")  
+                .style("font-size", "16px") 
+                .style("text-decoration", "underline")  
+                .text("Average salaries in San Francisco from 2011-2014");
+
                 
             var dataElem = svg.selectAll("." + ySort)
                 .data(averagedData)
@@ -295,7 +320,7 @@ $(function() {
         });
     });
     $("rect").tooltip({
-			'container': 'body',
+			'container': function(d) {return d;},
 			'placement': 'top'
 		});
 });
