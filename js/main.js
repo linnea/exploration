@@ -13,24 +13,32 @@
 
 $(function() { 
    var currentData;
+   var maintainScales = false;
    d3.csv('data/Salaries.csv', function(error, allData) {
+       currentData = allData;
        // leverages module 8 exercise 3 as base code
        if (error) throw error;
+       // can replace with any other xValues for reusability
         var xVals = ['BasePay', 'OvertimePay', 'OtherPay', 'Benefits'];
+        // can be switched out for xVals 
         var xAlt = ['TotalPay', 'TotalPayBenefits'];
+        // different options for y-values
         var yVals = ['Year', 'JobTitle'];
+        
+        // what the axis is sorted by
         var ySort = 'JobTitle';
         
-        // switch the type of category you want
+        // switch the type of category you want default
         var category = 'NURSE';
-        var xSort = 'TotalPay';
+        // scaling
+        var xSort = 'TotalPayBenefits';
         var titleMap, averagedData, color;
         var xAxis, yAxis;
         // create an aggregate of similar titles
         var filterCategory = function(category) {
             titleMap = new Map();
             var newData = allData.filter(function(d) {
-                var title = d['JobTitle'].toUpperCase();
+                var title = d[ySort].toUpperCase();
                 if(title.indexOf(category) > -1) {
                         if(titleMap.has(title)) {
                             var value = titleMap.get(title);
@@ -52,9 +60,8 @@ $(function() {
                                 var dataVal = d[xVal];
                                 if (isNaN(d[xVal])) {
                                     dataVal = 0;
-                                } else {
-                                modifiedData[xVal] = parseFloat(d[xVal] / 100); 
                                 }
+                                modifiedData[xVal] = parseFloat(dataVal / 100); 
                             });
                             modifiedData.count = 1;
                             titleMap.set(title, modifiedData);
@@ -66,7 +73,7 @@ $(function() {
                 // average out each item
                 titleMap.forEach(function(value, key, map) {
                     xVals.forEach(function(xVal) {
-                        value[xVal] = (value[xVal] / value.count) * 100;
+                        value[xVal] = parseFloat(value[xVal] / value.count) * 100;
                 
                     });
                     // like d3.nest, creates nested object 
@@ -78,6 +85,31 @@ $(function() {
                 return newData;
             }
         
+        
+       function filterxVals(val) {
+           var index = xVals.indexOf(val);
+           
+           // if no check boxes are selected, display this var
+           if (xVals.indexOf(xSort) > -1) {
+               xVals.splice(xVals.indexOf(xSort), 1);
+                $("#totalpay").css("display", "none");   
+           };
+           
+           // if the check mark isn't checked, remove it as a variable
+           if(index > -1) {
+               xVals.splice(index, 1);
+               // if there's no data supplied
+               // give the user the total val
+               if (xVals.length == 0) {
+                   xVals.push(xSort);
+                   $("#totalpay").css("display", "block");
+                }
+           } else {
+             // when checking a checkmark, add that variable back 
+             xVals.push(val);
+           }
+           draw(currentData);
+       }
         // include only category results
        var currentData = filterCategory(category);
        var margin = {
@@ -97,7 +129,8 @@ $(function() {
                     
         function setColor(data) {
             color = d3.scale.ordinal()
-                .range(["#98abc5", "#8a89a6", "#7b6888", "#6b486b", "#a05d56", "#d0743c", "#ff8c00"]);
+                .range([ "#8a89a6","#ff8c00",  "#98abc5", "#6b486b" ]);
+                //["#98abc5", "#8a89a6", "#7b6888", "#6b486b", "#a05d56", "#d0743c", "#ff8c00"])
             
             color.domain(d3.keys(data[0]).filter(function(key) {
             if (xVals.indexOf(key) > -1) {
@@ -123,6 +156,26 @@ $(function() {
             
                 item.total = item.types[item.types.length - 1].y1;
             });
+            
+            var legend = svg.selectAll(".legend")
+                .data(color.domain().slice().reverse())
+                .enter().append("g")
+                .attr("class", "legend")
+                .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
+
+            legend.append("rect")
+                .attr("x", width - 18)
+                .attr("width", 18)
+                .attr("height", 18)
+                .style("fill", color);
+
+            legend.append("text")
+                .attr("x", width - 24)
+                .attr("y", 9)
+                .attr("dy", ".35em")
+                .style("text-anchor", "end")
+                .text(function(d) { return d; });
+            
         }
         
         
@@ -135,19 +188,21 @@ $(function() {
 
         var xAxisLabel = svg.append('g')
             .attr('transform', 'translate(' + margin.left + ',' + (height + margin.top) + ')')
-            .attr('class', 'axis');
+            .attr('class', 'axis')
+            .text(xAxisText);
             
         var yAxisLabel = svg.append('g')
             .attr('class', 'axis')
-            .attr('transform', 'translate(' + margin.left + ',' + (margin.top) + ')');
+            .attr('transform', 'translate(' + margin.left + ',' + (margin.top) + ')')
+            .text(yAxisText);
         
-        var xAxisText = svg.append('text')
+        var xAxisText = xAxisLabel.append('text')
                         .attr('transform', 'translate(' + (margin.left + width/2) + ',' + (height + margin.top + 40) + ')')
                         .attr('class', 'title')
         
-        var yAxisText = svg.append('text')
-            .attr('transform', 'translate(' + (margin.left - 40) + ',' + (margin.top + height/2) + ') rotate(-90)')
-            .attr('class', 'title');
+       var yAxisText = yAxisLabel.append('text')
+                        .attr('transform', 'translate(' + (margin.left - 40) + ',' + (margin.top + height/2) + ') rotate(-90)')
+											 .attr('class', 'title');
             
         var setScales = function(data, xSort, ySort) {
             // initialized with year
@@ -159,57 +214,6 @@ $(function() {
             y.domain([0, d3.max(data, function(d) {
                 return d.total;
             })]);
-            
-            /*
-            layers = d3.layout.stack()(xVals.map(function(key) {
-                return data.map(function(d) {
-                    return { 
-                        // automatically sort by first y option
-                        x: eval("d." + ySort),
-                        y: d[key]
-                    };
-                });
-            }));
-            
-            var layer = svg.selectAll(".layer")
-                .data(layers)
-                .enter().append("g")
-                .attr("class", "layer")
-                .style("fill", function(d, i) { return color(i); });
-            
-            layer.selectAll("rect")
-                .data(data)
-                .enter().append("rect")
-                .attr("x", function(d) {return x(d.x);})
-                .attr("y", function(d) {return y(d.y + d.y0);})
-                .attr("height", function(d) {return y(d.y0) - y(d.y + d.y0); })
-                .attr("width", x.rangeBand() - 1);
-            
-            xVals.forEach(function(x) {
-                var xData = data.map(function(d) {return eval('d.' + x)})
-                console.log(xData, x);
-                var newX = {
-                    data: xData,
-                    scale: d3.scale.ordinal().rangeBands([0, width], .2).domain(xData)
-                }
-                xVariables.push(newX);
-            });*/
-            
-            /*
-            // automatically set to the first element passed
-            xScale = d3.scale.ordinal().rangeBands([0, width], .2).domain(xVariables);
-            console.log(xVariables);
-            
-            yMax = 0; 
-            // check if other yvals change the min/max
-            yVals.forEach(function(y) {
-                var max = d3.max(data, function(d){return eval("+d." + y)});
-                if (max > yMax) {
-                    yMax = max;
-                }
-            });
-            yScale = d3.scale.linear().range([height, 0]).domain([0, yMax]);
-        */
         }
    
         var setAxes = function() {
@@ -221,14 +225,22 @@ $(function() {
                         .scale(y)
                         .orient('left')
                         .tickFormat(d3.format('.2s'));
+                // Call xAxis
+			xAxisLabel.transition().duration(1500).call(xAxis);
+
+			// Call yAxis
+			yAxisLabel.transition().duration(1500).call(yAxis);
+
+			// Update labels
+			xAxisText.text('Job Title');
+			yAxisText.text('Amount ($)');
         }
     
-        var draw = function(data) {
+        var draw = function(data, adjustScales) {
             d3.selectAll('svg > g > *').remove();
             setColor(data);
             setScales(data, xSort, ySort);
             setAxes();
-            
             svg.append("g")
                 .attr("class", "x-axis")
                 .attr("transform", "translate(0," + height + ")")
@@ -254,60 +266,36 @@ $(function() {
             });
             
             dataElem.selectAll("rect")
-                .data(function(d) {console.log(d);return d.values.types;})
+                .data(function(d) {return d.values.types;})
                 .enter().append("rect")
                 .attr("width", x.rangeBand())
                 .attr("y", function(d) { return y(d.y1); })
                 .attr("height", function(d) { return y(d.y0) - y(d.y1); })
                 .style("fill", function(d) { return color(d.name); });
 
-            /*
-            var bars = g.selectAll('rect').data(data);
-            
-            bars.enter().append('rect')
-                    .attr('x', function(d){return xScale(xVals[0])})
-                    .attr('y', height)
-                    .attr('height', 0)
-                    .attr('width', xScale.rangeBand())
-                    .attr('class', 'bar')
-                    .attr('title', function(d) {return "This is a Title"});
-                    
-                bars.exit().remove()
-                bars.transition()
-                        .duration(1500)
-                        .delay(function(d,i){return i*50})
-                        .attr('x', function(d){return xScale(d.JobTitle)})
-                        .attr('y', function(d){return yScale(d.TotalPay)})
-                        .attr('height', function(d) {return height - yScale(eval("d." + yVals[0]))})
-                        .attr('width', xScale.rangeBand())
-                        .attr('title', function(d) {return "This is a title"});
-        */
+        
+       
         }
         //filterData();
         draw(currentData);
+        /*
+        d3.select("#adjustScales").on("change", function() {
+            if (d3.select("#adjustScales").attr("checked")) {
+                
+            }
+        }*/
         d3.selectAll("#jobTitles").on("submit", function() {
-            console.log("I did it.");
             d3.event.preventDefault();
-            var newData = filterCategory($('#category').val().toUpperCase());
-            draw(newData);
+            currentData = filterCategory($('#category').val().toUpperCase());
+            draw(currentData);
+        });
+        
+        d3.selectAll("input[type='checkbox']").on("change", function() {
+           filterxVals(this.value); 
         });
     });
     $("rect").tooltip({
 			'container': 'body',
 			'placement': 'top'
 		});
-        
-    
-
 });
-
-
-function categorySearch() {
-    console.log("working");
-    filterData($('#category'));
-}
-
-
-function updateDisplay() {
-    
-}

@@ -13,10 +13,21 @@
 </head>
 <body>
     <div class="container">
-        <form id="jobTitles" onSubmit="false">
+        <form id="jobTitles" onSubmit="false" style="display: inline-block">
             <label for="category">Search job titles:</label>
             <input type="text" id="category" placeholder="Engineer, police, etc..."></input>
             <button type="submit">Search</button>
+        </form>
+        
+        <form id="xVariables" onsubmit="false" style="display: inline-block">
+            <input type="checkbox" value="BasePay" checked> Base pay
+            <input type="checkbox" value="OvertimePay" checked> Overtime pay
+            <input type="checkbox" value="OtherPay" checked> Other pay
+            <input type="checkbox" value="Benefits" checked> Benefits
+            <div id="totalpay" style="display: none">
+                <input type="radio" value="TotalPayBenefits" checked> Total pay with benefits
+                <br> (No options selected)
+            </div>
         </form>
     </div>
     <div id="vis">
