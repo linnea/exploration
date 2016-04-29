@@ -1,3 +1,5 @@
+ http://students.washington.edu/linneakw/info474/exploration/
+ 
  My visual layout is an optimal choice for expressing my data because it is able to display the total salary for each position and visually represent how that total salary is divided up by base pay, overtime, benefits, and other means. I chose a divided bar chart to represent this data because it allows the user to pick apart how much each profession's salary is built upon these values, on average. The original data set has individual values, but I decided to average them in order to get a higher level view of the data.
  
  This data set was very vast set of data, so I struggled with trying to minimize the load so that it could be more easily understood. I decided to filter by occupation, so that similar job titles could be compared against one another, since that is what I wanted to show with this data. The first control is a search function, that allows you to input a keyword to search for a particular job title, and related job titles will generate the graph. This way, the user can compare the salary of similar occupations. 
